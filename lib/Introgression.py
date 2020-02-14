@@ -4,8 +4,6 @@
 import sys
 import os
 import gzip
-import numpy as np
-from itertools import islice
 from lib.VCF import SNP, VCF
 
 
@@ -27,17 +25,6 @@ class Introgression:
         numOfChunks = ((chrom_size - self.window_size) / self.step_size) + 1
         for i in range(0, int(numOfChunks) * self.step_size, self.step_size):
             yield (i, i + self.window_size)
-
-#    def __get_vcfs_in_range(self, vcf_arr, min_pos, max_pos, offset):
-#        vcf_in_range_arr = []
-#        last_idx = 0
-#        for idx, vcf in enumerate(islice(vcf_arr, offset, None)):
-#            if min_pos <= vcf.position <= max_pos:
-#                vcf_in_range_arr.append(vcf)
-#                last_idx = idx
-#            if vcf.position > max_pos:  # vcf file is sorted by position, thus values exceeding max_pos can be discarded
-#                break
-#        return last_idx + offset, vcf_in_range_arr
 
     def __create_empty_samples_genotype_dict(self, sample_names):
         alleles_window_sample = {}
@@ -64,7 +51,6 @@ class Introgression:
                 alleles_window_sample[sample_name][1] += reference_alleles
         return alleles_window_sample
 
-
     def __write_window_to_file(self, alleles_window_sample_dict, window_writer, chrom, start_window, end_window, write_header):
         if write_header:
             window_writer.write("Chromosome\twindow_start\twindow_end\tgenotype\t")
@@ -72,13 +58,12 @@ class Introgression:
                 delim = "\t"
                 if len(alleles_window_sample_dict) - 1 == idx:
                     delim = "\n"
-#                window_writer.write(sample_name + "_snow_sheep\t")
                 window_writer.write(sample_name + delim)
         is_write_row_info = True
         second_line = ""
         for idx, (sample_name, genotype_arr) in enumerate(alleles_window_sample_dict.items()):
             if is_write_row_info:
-                window_writer.write("{}\t{}\t{}\t{}\t".format(chrom, start_window, end_window, "snow_sheep"))
+                window_writer.write("{}\t{}\t{}\t{}\t".format(chrom, start_window, end_window, "species_specific"))
                 second_line += "{}\t{}\t{}\t{}\t".format(chrom, start_window, end_window, "reference")
                 is_write_row_info = False
             delim = "\t"
@@ -95,8 +80,6 @@ class Introgression:
         vcf = VCF()
         seek_position = 0
         chrom_sizes_dict = vcf.get_chromosome_sizes(self.vcf_file)
-
-#        vcf_chrom_dict = vcf.read_vcf_file_per_chrom(self.vcf_file)
         last_idx = 0
         samples = vcf.get_sample_names(self.vcf_file)
         write_header = True
@@ -105,29 +88,21 @@ class Introgression:
                 for chromosome, size in chrom_sizes_dict.items():
                     window_writer = open(os.path.join(self.binned_output_folder, chromosome+"_window.csv"), 'w')
                     chunks = self.sliding_window_generator(size)
-                    number_of_snps_per_window = []
                     vcf_arr = []
                     print("\nScreening: {}".format(chromosome))
                     for start_pos, end_pos in chunks:
                         vcf_arr, seek_position = vcf.read_lazy_chunks_per_chromsome(vcf_reader, samples, chromosome, start_pos, end_pos, seek_position, vcf_arr)
                        # last_idx, vcf_in_range = self.__get_vcfs_in_range(vcf_arr, start_pos, end_pos, last_idx)
-                        sys.stdout.write("\rWindow:{}:{}-{}\tNb.SNPs: {}".format(chromosome, start_pos, end_pos,len(vcf_arr)))
+                        sys.stdout.write("\r\tWindow:\t{}:{}-{}\tNb.SNPs: {}".format(chromosome, start_pos, end_pos,len(vcf_arr)))
                         sys.stdout.flush()
                         alleles_window_sample_dict = self.determine_alleles(vcf_arr, samples)
                         self.__write_window_to_file(alleles_window_sample_dict, window_writer, chromosome, start_pos, end_pos, write_header)
                         write_header = False
-                        number_of_snps_per_window.append(len(vcf_arr))
-                        #print("First/Last : {}:{}\t{}:{}".format(vcf_arr[0].chrom, vcf_arr[0].position, vcf_arr[-1].chrom, vcf_arr[-1].position))
                         if not seek_position:  # end of file reached
                             window_writer.close()
                             raise EOFError('End of file reached')  # a bit clumsy but outer loop needs to be broken
-                    number_of_snps_per_window = np.asarray(number_of_snps_per_window)
-                    np.savetxt("/data/local/medugorac/alex/nb_snps_{}.csv".format(chromosome), number_of_snps_per_window, delimiter="\t")
                     window_writer.close()
             except EOFError as e:
-                print("\nDone")
+                print("\n")
         vcf_reader.close()
-
-
-  #  def __calculate_window(self, idx, ):
 
