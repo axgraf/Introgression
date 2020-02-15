@@ -9,9 +9,8 @@ from lib.VCF import SNP, VCF
 
 class Introgression:
 
-    def __init__(self, filtered_vcf_file_gzipped, snow_sheep_sample_names, window_size, step_size, binned_output_folder):
+    def __init__(self, filtered_vcf_file_gzipped, window_size, step_size, binned_output_folder):
         self.vcf_file = filtered_vcf_file_gzipped
-        self.snow_sheep_sample_names = snow_sheep_sample_names
         self.window_size = window_size  # window size to use
         self.step_size = step_size  # number of bases to jump for next calculation
         self.binned_output_folder = binned_output_folder  # output of window calculation; one file per chromosome
@@ -37,17 +36,17 @@ class Introgression:
         for snp in vcf_arr:
             for sample_name, sample in snp.samples_dict.items():
                 genotype = sample.GT.replace('/', '|').split('|')
-                snow_sheep_alleles = 0
+                species_interest_alleles = 0
                 reference_alleles = 0
                 if genotype[0] == '1':
-                    snow_sheep_alleles += 1
+                    species_interest_alleles += 1
                 else:
                     reference_alleles += 1
                 if genotype[1] == '1':
-                    snow_sheep_alleles += 1
+                    species_interest_alleles += 1
                 else:
                     reference_alleles += 1
-                alleles_window_sample[sample_name][0] += snow_sheep_alleles
+                alleles_window_sample[sample_name][0] += species_interest_alleles
                 alleles_window_sample[sample_name][1] += reference_alleles
         return alleles_window_sample
 

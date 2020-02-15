@@ -25,9 +25,11 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help="sub-command help", dest="command")
 
     filter_parser = subparsers.add_parser(FILTER_CMD,
-                                          help="Filters species specific homozygous variants from a list of provided samples names. " \
-                                               "A variant must be homozygous for at least one of the species specific samples. " \
-                                               "The reference samples must be homozygous for the reference alles with at least n %% [default: 90 %% ]. \n" \
+                                          help="Filters species specific homozygous variants from a list of provided sample names. " \
+                                               "An alternate variant must be homozygous for at least one of the species specific samples. " \
+                                               "The reference samples must be homozygous for the reference alle in a given percentage of the reference samples [default: 90 %%]. \n" \
+                                               "Further variants are filtered out if:\n " \
+                                               "QD: < 2; FS > 60; SOR > 3; MQ < 40; MQRankSum < -12.5; ReadPosRankSum < -8.0.   \n"
                                                "INDELs are discarded!\n")
     filter_parser.add_argument('-v',
                                '--vcf_file',
@@ -64,18 +66,11 @@ if __name__ == '__main__':
                                required=True)
 
     window_parser = subparsers.add_parser(WINDOW_CMD,
-                                          help="Calculates the number of species specific alleles and reference alleles in defined window. ")
+                                          help="Calculates the number of species specific alleles and reference alleles in defined window and step size for all samples. ")
     window_parser.add_argument('-v',
                                '--vcf_file',
                                metavar="FILE",
                                help="VCF.gz file with filtered variants from filter step",
-                               required=True)
-
-    window_parser.add_argument('-l',
-                               '--sample_names',
-                               metavar="[Sample1,Sample2,...]",
-                               help="List of samples to filter on. Names should be provided as listed in the vcf file. "
-                                    "Names should be separated with comma.",
                                required=True)
 
     window_parser.add_argument('-w', '--window_size',
@@ -103,19 +98,20 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    sample_names = args.sample_names.split(',')
-
-    try: # check if provided sample names match with those in VCF file
-        __check_sample_names_in_vcf(args.vcf_file, sample_names)
-    except LookupError as e:
-        print(e)
-        exit(1)
-
     if args.command == FILTER_CMD:
+
+        sample_names = args.sample_names.split(',')
+        try:  # check if provided sample names match with those in VCF file
+            __check_sample_names_in_vcf(args.vcf_file, sample_names)
+        except LookupError as e:
+            print(e)
+            exit(1)
+
         snp_filter = SNPFilter(args.vcf_file, sample_names, args.name_prefix,  args.output_folder, args.percentage_reference)
-        snp_filter.write_snow_sheep_specific_vcf_gzip()
+        snp_filter.write_species_specific_vcf_gzip()
+
     elif args.command == WINDOW_CMD:
-        introgression = Introgression(args.vcf_file, sample_names, args.window_size, args.step_size, args.output_folder)
+        introgression = Introgression(args.vcf_file, args.window_size, args.step_size, args.output_folder)
         introgression.calculate_introgression()
     else:
         parser.print_help(sys.stderr)

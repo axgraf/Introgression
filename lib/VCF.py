@@ -3,7 +3,6 @@
 
 import gzip
 import re
-from itertools import islice
 
 class VCF:
 
@@ -46,26 +45,6 @@ class VCF:
                     break
             vcf_reader.close()
         return chrom_size_dict
-
-#    def read_vcf_file_per_chrom(self, gvcf_file):
-#        vcf_dict = {}
-#        samples = self.get_sample_names(gvcf_file)
-#        total_snps = 0
-#        with gzip.open(gvcf_file, 'rt') as vcf_reader:
-#            for line in vcf_reader:
-#                line = line.rstrip()
-#                if not line.startswith('#'):
-#                    snp = SNP(line, samples)
-#                    if snp.chrom in vcf_dict:
-#                        vcf_dict[snp.chrom].append(snp)
-#                        total_snps += 1
-#                        if total_snps % 10000 == 0:
-#                            break
-#                    else:
-#                        print("Reading:\t"+snp.chrom)
-#                        vcf_dict[snp.chrom] = [snp]
-#            vcf_reader.close()
-#        return vcf_dict
 
     def __remove_snps_outside_region(self, snps_arr, chromosome, start_pos, end_pos):
         snps_in_range = []

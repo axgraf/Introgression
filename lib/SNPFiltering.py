@@ -9,9 +9,9 @@ from lib.VCF import SNP, VCF
 
 class SNPFilter:
 
-    def __init__(self, gvcf_file, snow_sheep_sample_names, prefix_output, output_folder, percentage_of_reference):
+    def __init__(self, gvcf_file, samples_interest_names, prefix_output, output_folder, percentage_of_reference):
         self.gvcf_file = gvcf_file
-        self.snow_sheep_sample_names = snow_sheep_sample_names
+        self.samples_interest_names = samples_interest_names
         self.prefix_output = prefix_output
         self.output_folder = output_folder
         self.percentage_of_reference = percentage_of_reference
@@ -24,7 +24,7 @@ class SNPFilter:
             os.mkdir(self.output_folder)
 
     def __log(self, chromosome, specific_nb, total_nb, log_writer, log_to_file):
-        if log_to_file:
+        if log_to_file: # assumes a switch in chromosomes -> reset counters
             log_writer.write("Chromosome:\t{}\t\tSpecific/Total:\t{}/{}\n".format(last_seen_chr, specific_nb, total_nb))
             log_writer.flush()
             sys.stdout.write("\rChromosome:\t{}\t\tSpecific/Total:\t{}/{}\n".format(chromosome, specific_nb, total_nb))
@@ -34,7 +34,7 @@ class SNPFilter:
             sys.stdout.flush()
         return (specific_nb, total_nb)
 
-    def write_snow_sheep_specific_vcf_gzip(self):
+    def write_species_specific_vcf_gzip(self):
         vcf = VCF()
         samples = vcf.get_sample_names(self.gvcf_file)
         vcf_header = vcf.get_vcf_header(self.gvcf_file)
@@ -54,7 +54,7 @@ class SNPFilter:
                         last_chr = snp.chrom
                     if self.__is_not_INDEL(snp):
                         if not self.__is_variant_filtered(snp):  # general variant quality filter
-                            if self.__is_variant_specific(snp, self.snow_sheep_sample_names):  # only snow sheep specific ones are kept
+                            if self.__is_variant_specific(snp, self.samples_interest_names):  # only species specific ones are kept
                                 output_writer.write((snp.vcf_line + "\n").encode('utf-8'))
                                 specific_snv += 1
                                 last_chr = snp.chrom
