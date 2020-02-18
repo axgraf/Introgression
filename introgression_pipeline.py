@@ -31,7 +31,7 @@ if __name__ == '__main__':
                                                "The reference samples must be homozygous for the reference alle in a given percentage of the reference samples [default: 90 %%]. \n" \
                                                "Further variants are filtered out if:\n " \
                                                "QD: < 2; FS > 60; SOR > 3; MQ < 40; MQRankSum < -12.5; ReadPosRankSum < -8.0.   \n"
-                                               "INDELs are discarded!\n")
+                                               "INDELs are discarded! It outputs a .bgzip file, which allows indexing and is compatible to gzip. \n")
     filter_parser.add_argument('-v',
                                '--vcf_file',
                                metavar="FILE",

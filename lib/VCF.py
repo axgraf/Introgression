@@ -58,34 +58,6 @@ class VCF:
         chromosome_queue.put((None, None))  # signal end of queue
         return chromosome_queue
 
-#    def __remove_snps_outside_region(self, snps_arr, chromosome, start_pos, end_pos):
-#        snps_in_range = []
-#        for snp in snps_arr:
-#            if snp.chrom == chromosome:
-#                if snp.position >= start_pos and snp.position <= end_pos:
-#                    snps_in_range.append(snp)
-#        return snps_in_range
-
-#    def read_lazy_chunks_per_chromsome(self, vcf_reader, samples, chromosome, start_pos, end_pos, seek, snps_arr, firstSeek):
-#        snps_arr = self.__remove_snps_outside_region(snps_arr, chromosome, start_pos, end_pos)
-#        vcf_reader.seek(seek)
-#        line = vcf_reader.readline()
-#        while True:
-#            line = line.rstrip()
-#            if not line.startswith('#'):
-#                snp = SNP(line, samples)
-#                if snp.chrom == chromosome:
-#                    firstSeek = False
-#                    if start_pos <= snp.position <= end_pos:
-#                        snps_arr.append(snp)
-#                    else:
-#                        return firstSeek, snps_arr, vcf_reader.tell() - len(line) - 1  # jump to line beginning
-#                elif not firstSeek:
-#                    return firstSeek, snps_arr,  vcf_reader.tell() - len(line) - 1
-##                   return snps_arr,  vcf_reader.tell() - len(line) - 1
-#            line = vcf_reader.readline().strip()
-#            if line == '':
-#                return snps_arr, False
 
 
 class SNP:
