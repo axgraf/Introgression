@@ -4,6 +4,7 @@
 import os
 import sys
 import gzip
+import pysam
 from lib.VCF import SNP, VCF
 
 
@@ -15,7 +16,7 @@ class SNPFilter:
         self.prefix_output = prefix_output
         self.output_folder = output_folder
         self.percentage_of_reference = percentage_of_reference
-        self.output_vcf = os.path.join(self.output_folder, self.prefix_output + "_specific_filtered.vcf.gz")
+        self.output_vcf = os.path.join(self.output_folder, self.prefix_output + "_specific_filtered.vcf.bgz")
         self.log_file = os.path.join(self.output_folder, self.prefix_output + "_specific_filtered.log")
         self.__setup()
 
@@ -25,14 +26,14 @@ class SNPFilter:
 
     def __log(self, chromosome, specific_nb, total_nb, log_writer, log_to_file):
         if log_to_file: # assumes a switch in chromosomes -> reset counters
-            log_writer.write("Chromosome:\t{}\t\tSpecific/Total:\t{}/{}\n".format(last_seen_chr, specific_nb, total_nb))
+            log_writer.write("Chromosome:\t{}\t\tSpecific/Total:\t{}/{}\n".format(chromosome, specific_nb, total_nb))
             log_writer.flush()
             sys.stdout.write("\rChromosome:\t{}\t\tSpecific/Total:\t{}/{}\n".format(chromosome, specific_nb, total_nb))
-            return (0, 0)
+            return 0, 0
         if total_nb % 10000 == 0:
             sys.stdout.write("\rChromosome:\t{}\t\tSpecific/Total:\t{}/{}".format(chromosome, specific_nb, total_nb))
             sys.stdout.flush()
-        return (specific_nb, total_nb)
+        return specific_nb, total_nb
 
     def write_species_specific_vcf_gzip(self):
         vcf = VCF()
@@ -41,7 +42,7 @@ class SNPFilter:
         total_nb = 0
         specific_snv = 0
         last_chr = None
-        with gzip.open(self.gvcf_file, 'rt') as vcf_reader, gzip.open(self.output_vcf, 'wb') as output_writer, open(self.log_file, 'w') as log_writer:
+        with gzip.open(self.gvcf_file, 'rt') as vcf_reader, pysam.BGZFile(self.output_vcf, 'wb') as output_writer, open(self.log_file, 'w') as log_writer:
             output_writer.write(vcf_header.encode('utf-8'))
             for line in vcf_reader:
                 line = line.rstrip()
@@ -49,7 +50,7 @@ class SNPFilter:
                     snp = SNP(line, samples)
                     specific_snv, total_nb = self.__log(snp.chrom, specific_snv, total_nb, log_writer, False)
                     if last_chr != snp.chrom:
-                        if last_chr != None:
+                        if last_chr is not None:
                             specific_snv, total_nb = self.__log(snp.chrom, specific_snv, total_nb, log_writer, True)
                         last_chr = snp.chrom
                     if self.__is_not_INDEL(snp):
@@ -59,7 +60,6 @@ class SNPFilter:
                                 specific_snv += 1
                                 last_chr = snp.chrom
                     total_nb += 1
-
             log_writer.write("Chromosome:\t{}\t\tSpecific/Total:\t{}/{}\n".format(last_chr, specific_snv, total_nb))
             log_writer.close()
             output_writer.close()

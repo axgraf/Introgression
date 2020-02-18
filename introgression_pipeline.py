@@ -14,6 +14,7 @@ def __check_sample_names_in_vcf(vcf_file, sample_names):
         if not sample in extracted_names:
             raise LookupError("Sample name '{}' not found in VCF file '{}'".format(sample, vcf_file))
 
+
 if __name__ == '__main__':
 
     FILTER_CMD = "filter"
@@ -87,6 +88,13 @@ if __name__ == '__main__':
                                default=10000,
                                required=False)
 
+    window_parser.add_argument('-t', '--threads',
+                               metavar="INT",
+                               help="Number of concurrent threads. More than three threads are not efficient [default: 3]",
+                               type=int,
+                               default=3,
+                               required=False)
+
     window_parser.add_argument('-o',
                                '--output_folder',
                                metavar="FOLDER",
@@ -111,7 +119,7 @@ if __name__ == '__main__':
         snp_filter.write_species_specific_vcf_gzip()
 
     elif args.command == WINDOW_CMD:
-        introgression = Introgression(args.vcf_file, args.window_size, args.step_size, args.output_folder)
+        introgression = Introgression(args.vcf_file, args.window_size, args.step_size, args.output_folder, args.threads)
         introgression.calculate_introgression()
     else:
         parser.print_help(sys.stderr)

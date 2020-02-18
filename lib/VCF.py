@@ -3,10 +3,13 @@
 
 import gzip
 import re
+import multiprocessing as mp
+
 
 class VCF:
 
-    def get_sample_names(self, gvcf_file):
+    @staticmethod
+    def get_sample_names(gvcf_file):
         with gzip.open(gvcf_file, 'rt') as vcf_reader:
             for line in vcf_reader:
                 if line.startswith("#CHROM"):
@@ -15,7 +18,8 @@ class VCF:
                     return tabs[9:]
             vcf_reader.close()
 
-    def get_vcf_header(self, vcf_file):
+    @staticmethod
+    def get_vcf_header(vcf_file):
         vcf_header = ""
         with gzip.open(vcf_file, 'rt') as vcf_reader:
             for line in vcf_reader:
@@ -27,7 +31,8 @@ class VCF:
             vcf_reader.close()
         return vcf_header
 
-    def get_chromosome_sizes(self, vcf_file):
+    @staticmethod
+    def get_chromosome_sizes(vcf_file):
         chrom_size_dict = {}
         with gzip.open(vcf_file, 'rt') as vcf_reader:
             for line in vcf_reader:
@@ -46,32 +51,41 @@ class VCF:
             vcf_reader.close()
         return chrom_size_dict
 
-    def __remove_snps_outside_region(self, snps_arr, chromosome, start_pos, end_pos):
-        snps_in_range = []
-        for snp in snps_arr:
-            if snp.chrom == chromosome:
-                if snp.position >= start_pos and snp.position <= end_pos:
-                    snps_in_range.append(snp)
-        return snps_in_range
+    def get_chromosome_queue(self, vcf_file):
+        chromosome_queue = mp.Queue()
+        for chrom, size in self.get_chromosome_sizes(vcf_file).items():
+            chromosome_queue.put((chrom, size))
+        chromosome_queue.put((None, None))  # signal end of queue
+        return chromosome_queue
 
-    def read_lazy_chunks_per_chromsome(self, vcf_reader, samples, chromsome, start_pos, end_pos, seek, snps_arr):
-        snps_arr = self.__remove_snps_outside_region(snps_arr, chromsome, start_pos, end_pos)
-        vcf_reader.seek(seek)
-        line = vcf_reader.readline()
-        while True:
-            line = line.rstrip()
-            if not line.startswith('#'):
-                snp = SNP(line, samples)
-                if snp.chrom == chromsome:
-                    if start_pos <= snp.position <= end_pos:
-                        snps_arr.append(snp)
-                    else:
-                        return snps_arr, vcf_reader.tell() - len(line) - 1  # jump to line beginning
-                else:
-                    return snps_arr,  vcf_reader.tell() - len(line) - 1
-            line = vcf_reader.readline().strip()
-            if line == '':
-                return snps_arr, False
+#    def __remove_snps_outside_region(self, snps_arr, chromosome, start_pos, end_pos):
+#        snps_in_range = []
+#        for snp in snps_arr:
+#            if snp.chrom == chromosome:
+#                if snp.position >= start_pos and snp.position <= end_pos:
+#                    snps_in_range.append(snp)
+#        return snps_in_range
+
+#    def read_lazy_chunks_per_chromsome(self, vcf_reader, samples, chromosome, start_pos, end_pos, seek, snps_arr, firstSeek):
+#        snps_arr = self.__remove_snps_outside_region(snps_arr, chromosome, start_pos, end_pos)
+#        vcf_reader.seek(seek)
+#        line = vcf_reader.readline()
+#        while True:
+#            line = line.rstrip()
+#            if not line.startswith('#'):
+#                snp = SNP(line, samples)
+#                if snp.chrom == chromosome:
+#                    firstSeek = False
+#                    if start_pos <= snp.position <= end_pos:
+#                        snps_arr.append(snp)
+#                    else:
+#                        return firstSeek, snps_arr, vcf_reader.tell() - len(line) - 1  # jump to line beginning
+#                elif not firstSeek:
+#                    return firstSeek, snps_arr,  vcf_reader.tell() - len(line) - 1
+##                   return snps_arr,  vcf_reader.tell() - len(line) - 1
+#            line = vcf_reader.readline().strip()
+#            if line == '':
+#                return snps_arr, False
 
 
 class SNP:
